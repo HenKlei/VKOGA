@@ -2,11 +2,11 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from vkoga.kernels import Gaussian, Matern
-from vkoga.vkoga import VKOGA
+from vkoga.kernels import Gaussian
+from vkoga import VKOGA
+
 
 np.random.seed(1)
-
 
 # Create some data (simply learn the identity)
 dim = 2
@@ -16,9 +16,8 @@ y_train = X_train
 X_val = np.random.rand(1000, dim)
 y_val = X_val
 
-
 # Run VKOGA
-kernel = Gaussian() # Matern(k=1)
+kernel = Gaussian()
 model = VKOGA(kernel=kernel, greedy_type='f_greedy')
 _ = model.fit(X_train, y_train, X_val=X_val, y_val=y_val, maxIter=50)
 
@@ -48,29 +47,5 @@ if dim == 1:
     plt.plot(X_val, model.predict(X_val), '.')
     plt.draw()
 
-
 # Result: Since the training set is quite small, we can clearly observe overfitting via the
 # validation set tracking
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

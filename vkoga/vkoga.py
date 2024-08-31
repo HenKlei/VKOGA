@@ -3,24 +3,23 @@
 from .kernels import Gaussian
 import numpy as np
 from sklearn.base import BaseEstimator
-from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
-from scipy.spatial import distance_matrix
-    
+from sklearn.utils.validation import check_X_y, check_array
+
+
 # VKOGA implementation
 class VKOGA(BaseEstimator):
-                                          
     def __init__(self, kernel=Gaussian(), kernel_par=1,
                  verbose=True, n_report=10,
-                 greedy_type='p_greedy', reg_par=0, restr_par=0, 
+                 greedy_type='p_greedy', reg_par=0, restr_par=0,
                  tol_f=1e-10, tol_p=1e-10):
-        
+
         # Set the verbosity on/off
         self.verbose = verbose
-        
+
         # Set the frequency of report
         self.n_report = n_report
-        
-        # Set the params defining the method 
+
+        # Set the params defining the method
         self.kernel = kernel
         self.kernel_par = kernel_par
         self.greedy_type = greedy_type
@@ -28,7 +27,7 @@ class VKOGA(BaseEstimator):
         self.restr_par = restr_par
 
         self.flag_val = None
-        
+
         # Set the stopping values
         self.tol_f = tol_f
         self.tol_p = tol_p
@@ -38,7 +37,6 @@ class VKOGA(BaseEstimator):
         self.Cut_ = None
         self.c = None
 
-
         # Initialize the convergence history
         self.train_hist = {}
         self.train_hist['n'] = []
@@ -47,7 +45,7 @@ class VKOGA(BaseEstimator):
         self.train_hist['p selected'] = []              # list of selected power vals
         self.train_hist['f val'] = []
         self.train_hist['p val'] = []
-        
+
     def selection_rule(self, f, p):
         if self.restr_par > 0:
             p_ = np.max(p)
@@ -96,7 +94,6 @@ class VKOGA(BaseEstimator):
             self.Cut_ = np.zeros((0, 0))
             self.c = np.zeros((0, y.shape[1]))
 
-
         # Check whether "new X" and previously chosen centers overlap
         list_truly_new_X = []
         if self.ctrs_.shape[0] > 0:
@@ -110,8 +107,6 @@ class VKOGA(BaseEstimator):
         X = X[list_truly_new_X, :]
         y = y[list_truly_new_X, :]
 
-
-
         # Initialize the residual and update the given y values by substracting the current model
         y = np.array(y)
         if len(y.shape) == 1:
@@ -120,12 +115,10 @@ class VKOGA(BaseEstimator):
         if self.flag_val:
             y_val = y_val - self.predict(X_val)
 
-
         # Get the data dimension
         N, q = y.shape
         if self.flag_val:
             N_val = y_val.shape[0]
-
 
         # Set maxIter_continue
         if maxIter is None or maxIter > N:
@@ -133,31 +126,26 @@ class VKOGA(BaseEstimator):
         else:
             self.maxIter = maxIter
 
-
         # Check compatibility of restriction
         if self.greedy_type == 'p_greedy':
             self.restr_par = 0
         if not self.reg_par == 0:
             self.restr_par = 0
 
-
         # Initialize list for the chosen and non-chosen indices
         indI_ = []
         notIndI = list(range(N))
         c = np.zeros((self.maxIter, q))
-
 
         # Compute the Newton basis values (related to the old centers) on the new X
         Vx_new_X_old_ctrs = self.kernel.eval(X, self.ctrs_) @ self.Cut_.transpose()
         if self.flag_val:
             Vx_val_new_X_old_ctrs = self.kernel.eval(X_val, self.ctrs_) @ self.Cut_.transpose()
 
-
         # Initialize arrays for the Newton basis values (related to the new centers) on the new X
         Vx = np.zeros((N, self.maxIter))
         if self.flag_val:
             Vx_val = np.zeros((N_val, self.maxIter))
-
 
         # Compute the powervals on X and X_val
         p = self.kernel.diagonal(X) + self.reg_par
@@ -166,12 +154,10 @@ class VKOGA(BaseEstimator):
             p_val = self.kernel.diagonal(X_val) + self.reg_par
             p_val = p_val - np.sum(Vx_val_new_X_old_ctrs ** 2, axis=1)
 
-
         # Extend Cut_ matrix, i.e. continue to build on old self.Cut_ matrix
         N_ctrs_so_far = self.Cut_.shape[0]
         Cut_ = np.zeros((N_ctrs_so_far + self.maxIter, N_ctrs_so_far + self.maxIter))
         Cut_[:N_ctrs_so_far, :N_ctrs_so_far] = self.Cut_
-
 
         # Iterative selection of new points
         self.print_message('begin')
@@ -218,7 +204,6 @@ class VKOGA(BaseEstimator):
                     - Vx_val[:, :n+1] @ Vx[indI_[n], 0:n+1].transpose()
                 Vx_val[:, n] = Vx_val[:, n] / np.sqrt(p[indI_[n]])
 
-
             # update the change of basis
             Cut_new_row = np.ones(N_ctrs_so_far + n + 1)
             Cut_new_row[:N_ctrs_so_far + n] = \
@@ -250,15 +235,13 @@ class VKOGA(BaseEstimator):
             self.print_message('end')
 
         # Define coefficients and centers
-        self.c =  np.concatenate((self.c, c[:n + 1]))
+        self.c = np.concatenate((self.c, c[:n + 1]))
         self.Cut_ = Cut_[:N_ctrs_so_far + n + 1, :N_ctrs_so_far + n + 1]
         self.indI_ = indI_[:n + 1]     # Mind: These are only the indices of the latest points
         self.coef_ = self.Cut_.transpose() @ self.c
         self.ctrs_ = np.concatenate((self.ctrs_, X[self.indI_, :]), axis=0)
 
-
         return self
-
 
     def predict(self, X):
         # Check is fit has been called
@@ -274,7 +257,6 @@ class VKOGA(BaseEstimator):
             prediction = np.zeros((X.shape[0], 1))
 
         return prediction
-        ### TODO: replace with eval prod
 
     def print_message(self, when):
         if self.verbose and when == 'begin':
@@ -285,7 +267,6 @@ class VKOGA(BaseEstimator):
             print('       |_ regularization par. : %2.2e' % self.reg_par)
             print('       |_ restriction par.    : %2.2e' % self.restr_par)
             print('')
-            
         if self.verbose and when == 'end':
             print('Training completed with')
             print('       |_ selected points     : %8d / %8d' % (self.train_hist['n'][-1], self.ctrs_.shape[0] + self.maxIter))
@@ -297,7 +278,6 @@ class VKOGA(BaseEstimator):
             else:
                 print('       |_ train residual      : %2.2e / %2.2e' % (self.train_hist['f'][-1], self.tol_f))
                 print('       |_ train power fun     : %2.2e / %2.2e' % (self.train_hist['p'][-1], self.tol_p))
-                        
         if self.verbose and when == 'track':
             print('Training ongoing with')
             print('       |_ selected points     : %8d / %8d' % (self.train_hist['n'][-1], self.ctrs_.shape[0] + self.maxIter))

@@ -9,7 +9,6 @@ x = np.linspace(-1, 1, 100)[:, None]
 y = np.matrix([0])
 A = ker.eval(x, y)
 
-
 fig = plt.figure(1)
 ax = fig.gca()
 ax.plot(x, A)
